@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EMS Archive · 데모</title>
+<style>
+:root{
+  --bg:#0a0d13; --panel:#131822; --panel2:#1a2130; --line:#262f3f;
+  --fg:#e9eef6; --dim:#8792a6; --accent:#4a8fff; --ok:#3fb950; --err:#f85149; --warn:#d29922;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans KR',sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px 80px}
+
+.demobar{background:linear-gradient(90deg,#3b2a00,#4a3400);border-bottom:1px solid #6b4d00;
+  padding:8px 20px;font-size:12px;color:#f0c14b;text-align:center}
+.demobar b{color:#ffd97a}
+
+header{border-bottom:1px solid var(--line);background:rgba(10,13,19,.92);backdrop-filter:blur(10px);position:sticky;top:0;z-index:50}
+.hd{max-width:1120px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.logo{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.logo span{color:var(--accent)}
+.net{font-size:11px;padding:3px 9px;border:1px solid var(--line);border-radius:99px;color:var(--dim)}
+.net.on{color:var(--ok);border-color:rgba(63,185,80,.4);background:rgba(63,185,80,.07)}
+.spacer{flex:1}
+
+button{font-family:inherit;font-size:13px;cursor:pointer;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--fg);padding:9px 15px;transition:.12s}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.pri{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.pri:hover:not(:disabled){filter:brightness(1.13)}
+button.sm{padding:5px 11px;font-size:11px}
+
+nav{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:22px 0 24px;overflow-x:auto}
+nav button{background:none;border:none;border-bottom:2px solid transparent;border-radius:0;
+  padding:11px 16px;color:var(--dim);white-space:nowrap}
+nav button.on{color:var(--fg);border-bottom-color:var(--accent);font-weight:600}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:16px}
+h2{font-size:16px;margin-bottom:4px}
+.hint{font-size:12px;color:var(--dim);margin-bottom:18px}
+label{display:block;font-size:12px;color:var(--dim);margin:14px 0 6px}
+input,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;
+  padding:10px 12px;color:var(--fg);font-family:inherit;font-size:13px}
+input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:vertical;min-height:70px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+
+.grid{display:grid;gap:14px}
+.g3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(148px,1fr))}
+
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+.stat .n{font-size:26px;font-weight:700;letter-spacing:-.5px}
+.stat .l{font-size:11px;color:var(--dim);margin-top:2px}
+.stat .d{font-size:11px;color:var(--ok);margin-top:5px}
+
+.nft{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  cursor:pointer;transition:.14s}
+.nft:hover{border-color:var(--accent);transform:translateY(-2px)}
+.thumb{height:145px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.thumb .ic{font-size:36px;opacity:.5;z-index:1}
+.nft .body{padding:12px 13px}
+.nft .t{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nft .m{font-size:11px;color:var(--dim);margin-top:3px;display:flex;justify-content:space-between}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--dim);font-weight:500;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line)}
+tbody tr:last-child td{border-bottom:none}
+
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:99px;background:var(--panel2);color:var(--dim)}
+.badge.mint{background:rgba(74,143,255,.16);color:#8ab8ff}
+.badge.view{background:rgba(63,185,80,.16);color:#5fd677}
+
+#toast{position:fixed;right:18px;bottom:18px;z-index:99;display:flex;flex-direction:column;gap:8px}
+.tst{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:8px;padding:12px 16px;font-size:13px;max-width:330px;animation:sl .2s}
+.tst.ok{border-left-color:var(--ok)} .tst.err{border-left-color:var(--err)}
+@keyframes sl{from{opacity:0;transform:translateX(18px)}}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:80;display:none;
+  align-items:center;justify-content:center;padding:20px}
+.modal.on{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:720px;
+  width:100%;max-height:88vh;overflow:auto}
+.mhd{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;background:var(--panel);z-index:2}
+.mbd{padding:22px}
+.prev{background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-bottom:18px;
+  min-height:200px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.kv{display:flex;padding:9px 0;border-bottom:1px solid var(--line);gap:14px;font-size:12px}
+.kv .k{color:var(--dim);width:96px;flex-shrink:0}
+.kv .v{flex:1;word-break:break-all}
+
+.empty{text-align:center;padding:50px 20px;color:var(--dim);font-size:13px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:34px 20px;text-align:center;
+  cursor:pointer;transition:.15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:rgba(74,143,255,.05)}
+.bar{height:4px;background:var(--panel2);border-radius:99px;overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:.4s}
+
+.steps{margin-top:16px;font-size:12px;font-family:ui-monospace,Menlo,monospace}
+.step{padding:6px 0;color:var(--dim);display:flex;gap:9px;align-items:flex-start}
+.step .s{width:14px;flex-shrink:0}
+.step.done{color:var(--fg)} .step.done .s{color:var(--ok)}
+.step.run{color:var(--fg)}
+
+.flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--dim);
+  padding:16px;background:var(--bg);border:1px solid var(--line);border-radius:10px;margin-bottom:18px}
+.node{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 13px;text-align:center}
+.node b{display:block;color:var(--fg);font-size:12px}
+.arrow{color:var(--accent);font-size:15px}
+
+.chart{display:flex;align-items:flex-end;gap:5px;height:110px;padding-top:10px}
+.chart .b{flex:1;background:linear-gradient(180deg,var(--accent),rgba(74,143,255,.25));
+  border-radius:3px 3px 0 0;min-height:3px;position:relative}
+.chart .b:hover::after{content:attr(data-v);position:absolute;top:-20px;left:50%;
+  transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);
+  padding:1px 6px;border-radius:4px;font-size:10px;white-space:nowrap}
+.xaxis{display:flex;gap:5px;font-size:9px;color:var(--dim);margin-top:6px}
+.xaxis span{flex:1;text-align:center}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+
+<div class="demobar">
+  <b>시뮬레이션 데모</b> · 실제 블록체인·IPFS에 연결되지 않습니다. 모든 CID·트랜잭션·블록은 가상으로 생성됩니다.
+</div>
+
+<header><div class="hd">
+  <div class="logo">EMS <span>Archive</span></div>
+  <div class="net" id="netBadge">미연결</div>
+  <div class="spacer"></div>
+  <button id="btnConnect" class="pri">지갑 연결</button>
+</div></header>
+
+<div class="wrap">
+  <nav>
+    <button class="on" data-tab="upload">업로드 &amp; 발행</button>
+    <button data-tab="gallery">아카이브</button>
+    <button data-tab="dash">대시보드</button>
+    <button data-tab="about">동작 방식</button>
+  </nav>
+
+  <!-- ===== UPLOAD ===== -->
+  <section id="tab-upload">
+    <div class="card">
+      <h2>파일 업로드 후 NFT 발행</h2>
+      <p class="hint">파일이 IPFS에 저장되고, 그 CID가 EMS 체인의 NFT에 기록됩니다.</p>
+
+      <div class="flow">
+        <div class="node"><b>브라우저</b>파일 선택</div>
+        <span class="arrow">→</span>
+        <div class="node"><b>IPFS 노드</b>sailab06</div>
+        <span class="arrow">→</span>
+        <div class="node"><b>CID 생성</b>bafy…</div>
+        <span class="arrow">→</span>
+        <div class="node"><b>EMS 체인</b>mint()</div>
+        <span class="arrow">→</span>
+        <div class="node"><b>NFT</b>발행 완료</div>
+      </div>
+
+      <div class="drop" id="drop">
+        <div style="font-size:28px;opacity:.4">⬆</div>
+        <div style="margin-top:8px;font-weight:600" id="dropT">클릭하거나 파일을 끌어다 놓으세요</div>
+        <div class="hint" style="margin:4px 0 0" id="dropS">이미지 · 영상 · 문서 무엇이든 가능</div>
+        <input type="file" id="file" style="display:none">
+      </div>
+      <div class="bar" id="bar" style="display:none"><i></i></div>
+      <div class="steps" id="steps" style="display:none"></div>
+
+      <label>제목 *</label>
+      <input id="fTitle" placeholder="예: 2026 정기총회 회의록">
+      <label>설명</label>
+      <textarea id="fDesc" placeholder="자산에 대한 설명"></textarea>
+
+      <button class="pri" id="btnUpload" disabled style="width:100%;margin-top:20px">IPFS 업로드 후 발행</button>
+      <div id="upResult" style="margin-top:16px"></div>
+    </div>
+  </section>
+
+  <!-- ===== GALLERY ===== -->
+  <section id="tab-gallery" style="display:none">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <h2 style="flex:1">아카이브 <span class="badge" id="galCount">0</span></h2>
+      <input id="q" placeholder="제목 검색" style="width:190px">
+    </div>
+    <div class="grid g3" id="gallery"></div>
+    <div class="empty" id="galEmpty" style="display:none">발행된 자산이 없습니다.</div>
+  </section>
+
+  <!-- ===== DASHBOARD ===== -->
+  <section id="tab-dash" style="display:none">
+    <div class="grid g4" style="margin-bottom:18px">
+      <div class="stat"><div class="n" id="sTotal">-</div><div class="l">총 발행량</div><div class="d" id="dTotal"></div></div>
+      <div class="stat"><div class="n" id="sViews">-</div><div class="l">누적 조회</div><div class="d" id="dViews"></div></div>
+      <div class="stat"><div class="n" id="sHolders">-</div><div class="l">보유 주소</div></div>
+      <div class="stat"><div class="n" id="sBlock">-</div><div class="l">현재 블록</div><div class="d">2초/블록</div></div>
+    </div>
+
+    <div class="card">
+      <h2>최근 7일 활동</h2>
+      <p class="hint">발행 + 조회 이벤트 합계</p>
+      <div class="chart" id="chart"></div>
+      <div class="xaxis" id="xaxis"></div>
+    </div>
+
+    <div class="card">
+      <h2>조회수 상위</h2>
+      <p class="hint">ViewLogged 이벤트 기준 집계</p>
+      <table><thead><tr><th>#</th><th>제목</th><th>CID</th><th style="text-align:right">조회</th></tr></thead>
+      <tbody id="topBody"></tbody></table>
+    </div>
+
+    <div class="card">
+      <h2>활동 로그</h2>
+      <p class="hint">체인 이벤트 최신순</p>
+      <table><thead><tr><th>유형</th><th>#</th><th>주소</th><th>블록</th><th>시각</th></tr></thead>
+      <tbody id="logBody"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT ===== -->
+  <section id="tab-about" style="display:none">
+    <div class="card">
+      <h2>실제 구현 시 동작 방식</h2>
+      <p class="hint">이 데모가 시뮬레이션하고 있는 실제 흐름입니다.</p>
+
+      <div style="font-size:13px;line-height:2">
+        <b style="color:var(--accent)">1. 업로드</b><br>
+        브라우저가 <span class="mono">POST /api/v0/add</span> 로 파일을 자체 IPFS 노드(sailab06)에 전송합니다.
+        노드는 내용 해시 기반의 CID를 반환하고, <span class="mono">pin=true</span> 로 영구 보관합니다.
+        <br><br>
+        <b style="color:var(--accent)">2. 발행</b><br>
+        받은 CID와 메타데이터를 인자로 <span class="mono">mint(cid, title, description, mimeType, fileSize)</span> 를 호출합니다.
+        EMS 체인(chainId 7604)이 2초 안에 블록을 확정하고 <span class="mono">Minted</span> 이벤트를 남깁니다.
+        <br><br>
+        <b style="color:var(--accent)">3. 열람</b><br>
+        NFT의 tokenId로 컨트랙트에서 CID를 조회한 뒤, IPFS 게이트웨이에서 원본을 렌더링합니다.
+        파일 자체는 체인에 올라가지 않으므로 용량 제약이 없습니다.
+        <br><br>
+        <b style="color:var(--accent)">4. 조회 기록</b><br>
+        <span class="mono">logView(tokenId)</span> 호출 시 <span class="mono">ViewLogged</span> 이벤트가 발생합니다.
+        누가 언제 무엇을 열람했는지가 체인에 남아 위변조 없는 감사 로그가 됩니다.
+        대시보드는 이 이벤트를 집계해 표시합니다.
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>구성 요소</h2>
+      <table style="font-size:13px">
+        <tr><td style="color:var(--dim);width:120px">체인</td><td>EMS · chainId 7604 · Clique PoA · 2초 블록</td></tr>
+        <tr><td style="color:var(--dim)">RPC</td><td class="mono">https://ems.mustree.kr</td></tr>
+        <tr><td style="color:var(--dim)">IPFS API</td><td class="mono">https://ipfs-api.mustree.kr</td></tr>
+        <tr><td style="color:var(--dim)">게이트웨이</td><td class="mono">https://ipfs.mustree.kr/ipfs/</td></tr>
+        <tr><td style="color:var(--dim)">컨트랙트</td><td>EMSArchive · ERC-721 · 온체인 메타데이터</td></tr>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal"><div class="mbox">
+  <div class="mhd">
+    <div style="flex:1">
+      <div style="font-weight:600" id="mTitle">-</div>
+      <div class="hint" style="margin:0" id="mSub">-</div>
+    </div>
+    <button class="sm" id="mClose">닫기</button>
+  </div>
+  <div class="mbd" id="mBody"></div>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+/* ============ 시뮬레이션 상태 ============ */
+let connected = false;
+let account = '0x04212A138b5B8311126cF3d59eAe73034e053eCc';
+let block = 18472;
+let assets = [];
+let logs = [];
+let nextId = 1;
+
+const HOLDERS = [
+  '0x04212A138b5B8311126cF3d59eAe73034e053eCc',
+  '0x299e421dec65933eD64e38ce16F536fe2271a2Ac',
+  '0x603277e802615C6F17D65812a5D19fDC55353545',
+  '0xe58347cDE5C34a733eDF5f3679d0Af90a53D1fB5'
+];
+
+const $ = id => document.getElementById(id);
+const rnd = n => Array.from({length:n},()=>'0123456789abcdef'[Math.random()*16|0]).join('');
+const fakeCid = () => 'bafybei' + Array.from({length:45},()=>'abcdefghijklmnopqrstuvwxyz234567'[Math.random()*32|0]).join('');
+const fakeTx  = () => '0x' + rnd(64);
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const fileToDataURL = f => new Promise((res,rej)=>{
+  const r = new FileReader();
+  r.onload = ()=>res(r.result);
+  r.onerror = rej;
+  r.readAsDataURL(f);
+});
+
+const short = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '-';
+const fmtSize = b => b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';
+const fmtTime = t => new Date(t).toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+const esc = s => String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const icon = m => !m?'📄':m.startsWith('image')?'🖼':m.startsWith('video')?'🎬':m.startsWith('audio')?'🎵':m.includes('pdf')?'📕':m.includes('zip')?'🗜':'📄';
+
+function grad(seed){
+  const h1 = (seed*47)%360, h2 = (h1+58)%360;
+  return `linear-gradient(135deg,hsl(${h1},58%,26%),hsl(${h2},52%,15%))`;
+}
+
+function toast(msg,type){
+  const d=document.createElement('div');
+  d.className='tst '+(type||''); d.textContent=msg;
+  $('toast').appendChild(d);
+  setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),300)},4000);
+}
+
+/* ============ 시드 데이터 ============ */
+function seed(){
+  const now = Date.now();
+  const data = [
+    ['2026 정기총회 회의록','이사회 승인 완료본. 원본 스캔 포함','application/pdf',2451800, 0, 34, 6],
+    ['본사 사옥 실측 도면','3층 평면도 최종 리비전','image/png',5238400, 1, 21, 5],
+    ['EMS 브랜드 가이드','로고 규정 및 컬러 시스템','application/pdf',8912300, 0, 18, 4],
+    ['제품 시연 영상','2026 상반기 데모 세션 녹화','video/mp4',48210500, 2, 47, 3],
+    ['품질 인증서 사본','ISO 9001 갱신본','image/jpeg',1820400, 1, 12, 3],
+    ['연구 원자료 아카이브','측정 로그 및 스크립트 일체','application/zip',134500000, 3, 9, 2],
+    ['창립기념 사진 원본','1998년 촬영 필름 스캔','image/jpeg',12400800, 2, 63, 1],
+    ['특허 출원 명세서','출원번호 10-2026-0041··· 첨부','application/pdf',3120600, 0, 27, 1]
+  ];
+
+  data.forEach((d,i)=>{
+    const at = now - d[6]*86400000 - Math.random()*40000000;
+    const a = {
+      id: nextId++, cid: fakeCid(), title: d[0], desc: d[1], mime: d[2],
+      size: d[3], minter: HOLDERS[d[4]], owner: HOLDERS[d[4]],
+      at, views: d[5], tx: fakeTx(), blk: block - d[6]*43200 - (Math.random()*2000|0)
+    };
+    assets.push(a);
+    logs.push({t:'mint', id:a.id, who:a.minter, blk:a.blk, ts:at});
+
+    for(let v=0; v<Math.min(d[5],9); v++){
+      const ts = at + Math.random()*(now-at);
+      logs.push({
+        t:'view', id:a.id,
+        who: HOLDERS[Math.random()*HOLDERS.length|0],
+        blk: a.blk + (Math.random()*40000|0), ts
+      });
+    }
+  });
+  logs.sort((a,b)=>b.ts-a.ts);
+}
+seed();
+
+setInterval(()=>{ block += 1; if($('sBlock').textContent!=='-') $('sBlock').textContent = block.toLocaleString(); }, 2000);
+
+/* ============ 탭 ============ */
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    ['upload','gallery','dash','about'].forEach(t=>{
+      $('tab-'+t).style.display=(t===b.dataset.tab)?'':'none';
+    });
+    if(b.dataset.tab==='gallery') renderGallery();
+    if(b.dataset.tab==='dash') renderDash();
+  };
+});
+
+/* ============ 지갑 (모의) ============ */
+$('btnConnect').onclick = async ()=>{
+  if(connected) return;
+  const btn=$('btnConnect'); btn.disabled=true; btn.textContent='연결 중...';
+  await sleep(700);
+  connected = true;
+  btn.disabled=false; btn.textContent = short(account);
+  $('netBadge').textContent='EMS · 7604';
+  $('netBadge').className='net on';
+  toast('지갑 연결됨 · '+short(account),'ok');
+};
+
+/* ============ 업로드 ============ */
+let picked=null;
+$('drop').onclick=()=>$('file').click();
+$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('over')};
+$('drop').ondragleave=()=>$('drop').classList.remove('over');
+$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('over');
+  if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0])};
+$('file').onchange=e=>{if(e.target.files[0]) setFile(e.target.files[0])};
+
+function setFile(f){
+  picked=f;
+  $('dropT').textContent=f.name;
+  $('dropS').textContent=fmtSize(f.size)+' · '+(f.type||'unknown');
+  $('btnUpload').disabled=false;
+  if(!$('fTitle').value) $('fTitle').value=f.name.replace(/\.[^.]+$/,'');
+}
+
+const STEPS = [
+  'IPFS 노드에 파일 전송 중...',
+  '콘텐츠 해시 계산 → CID 생성',
+  'pin=true · 노드에 영구 고정',
+  '지갑 서명 요청 (mint 트랜잭션)',
+  '블록 확정 대기 중...',
+  'Minted 이벤트 확인'
+];
+
+$('btnUpload').onclick = async ()=>{
+  if(!picked){ toast('파일을 선택하세요','err'); return; }
+  if(!$('fTitle').value.trim()){ toast('제목을 입력하세요','err'); return; }
+  if(!connected){ toast('먼저 지갑을 연결하세요','err'); return; }
+
+  const btn=$('btnUpload'); btn.disabled=true;
+  const bar=$('bar'), fill=bar.querySelector('i'), sw=$('steps');
+  bar.style.display='block'; sw.style.display='block';
+  sw.innerHTML = STEPS.map((s,i)=>`<div class="step" id="st${i}"><span class="s">·</span><span>${s}</span></div>`).join('');
+  $('upResult').innerHTML='';
+
+  const cid = fakeCid(), tx = fakeTx();
+
+  for(let i=0;i<STEPS.length;i++){
+    const el = $('st'+i);
+    el.classList.add('run'); el.querySelector('.s').textContent='▸';
+    fill.style.width = ((i+1)/STEPS.length*100)+'%';
+    await sleep(i===4?1400:520);
+    el.classList.remove('run'); el.classList.add('done');
+    el.querySelector('.s').textContent='✓';
+    if(i===1) el.querySelector('span:last-child').innerHTML =
+      'CID 생성됨 · <span class="mono" style="color:var(--accent)">'+cid.slice(0,26)+'…</span>';
+    if(i===3) el.querySelector('span:last-child').innerHTML =
+      '서명 완료 · <span class="mono" style="color:var(--accent)">'+tx.slice(0,20)+'…</span>';
+  }
+
+  // 업로드한 실제 파일을 브라우저에 보관 (data URL) — 데모에서 원본 열람용
+  let dataUrl = null;
+  try { dataUrl = await fileToDataURL(picked); } catch(e){}
+
+  block += 1;
+  const a = {
+    id: nextId++, cid, title:$('fTitle').value.trim(), desc:$('fDesc').value.trim(),
+    mime: picked.type||'application/octet-stream', size:picked.size,
+    minter:account, owner:account, at:Date.now(), views:0, tx, blk:block,
+    data: dataUrl, fname: picked.name
+  };
+  assets.push(a);
+  logs.unshift({t:'mint', id:a.id, who:account, blk:block, ts:a.at});
+
+  $('upResult').innerHTML =
+    '<div style="background:rgba(63,185,80,.09);border:1px solid rgba(63,185,80,.3);border-radius:9px;padding:15px">'
+    +'<b style="color:var(--ok)">발행 완료 · Token #'+a.id+'</b>'
+    +'<div class="mono" style="font-size:11px;color:var(--dim);margin-top:7px">CID &nbsp;'+cid+'</div>'
+    +'<div class="mono" style="font-size:11px;color:var(--dim)">TX &nbsp;&nbsp;'+tx+'</div>'
+    +'<div class="mono" style="font-size:11px;color:var(--dim)">BLK &nbsp;'+block.toLocaleString()+'</div></div>';
+
+  toast('NFT #'+a.id+' 발행 완료','ok');
+
+  picked=null; $('file').value=''; $('fTitle').value=''; $('fDesc').value='';
+  $('dropT').textContent='클릭하거나 파일을 끌어다 놓으세요';
+  $('dropS').textContent='이미지 · 영상 · 문서 무엇이든 가능';
+  btn.disabled=false;
+  setTimeout(()=>{bar.style.display='none';fill.style.width='0';sw.style.display='none'},2500);
+};
+
+/* ============ 갤러리 ============ */
+$('q').oninput = renderGallery;
+
+function renderGallery(){
+  const q=$('q').value.toLowerCase();
+  const list = assets.filter(a=>!q||a.title.toLowerCase().includes(q)).slice().reverse();
+  $('galCount').textContent = assets.length;
+  $('galEmpty').style.display = list.length?'none':'block';
+  const g=$('gallery'); g.innerHTML='';
+  list.forEach(a=>{
+    const d=document.createElement('div');
+    d.className='nft';
+    const thumb = (a.data && a.mime.startsWith('image'))
+      ? '<div class="thumb" style="background:'+grad(a.id)+'"><img src="'+a.data+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div>'
+      : '<div class="thumb" style="background:'+grad(a.id)+'"><div class="ic">'+icon(a.mime)+'</div></div>';
+    d.innerHTML =
+      thumb
+      +'<div class="body"><div class="t">'+esc(a.title)+'</div>'
+      +'<div class="m"><span>#'+a.id+'</span><span>👁 '+a.views+'</span></div></div>';
+    d.onclick=()=>openDetail(a.id);
+    g.appendChild(d);
+  });
+}
+
+/* ============ 상세 ============ */
+function openDetail(id){
+  const a = assets.find(x=>x.id===id); if(!a) return;
+  $('mTitle').textContent = a.title;
+  $('mSub').textContent = 'Token #'+a.id+' · '+a.mime;
+
+  // 실제 원본 미리보기 (업로드해서 발행한 자산은 data 보유)
+  let inner;
+  if(a.data && a.mime.startsWith('image'))
+    inner = '<img src="'+a.data+'" style="max-width:100%;max-height:440px">';
+  else if(a.data && a.mime.startsWith('video'))
+    inner = '<video src="'+a.data+'" controls style="max-width:100%;max-height:440px"></video>';
+  else if(a.data && a.mime.startsWith('audio'))
+    inner = '<div style="padding:30px;width:100%"><audio src="'+a.data+'" controls style="width:100%"></audio></div>';
+  else if(a.data && a.mime.includes('pdf'))
+    inner = '<iframe src="'+a.data+'" style="width:100%;height:440px;border:0;border-radius:10px"></iframe>';
+  else
+    inner = '<div style="text-align:center;padding:34px 20px">'
+      +'<div style="font-size:50px;opacity:.65">'+icon(a.mime)+'</div>'
+      +'<div style="font-size:11px;color:var(--dim);margin-top:12px">'
+      +(a.data ? '이 형식은 미리보기를 지원하지 않습니다 · 버튼으로 열람하세요'
+               : '시연용 샘플 · 실제 환경에서는 IPFS 원본이 표시됩니다')
+      +'</div></div>';
+
+  // 잠금 오버레이 (조회 기록 전)
+  const prev =
+    '<div class="prev" id="prevBox" style="'+(a.data?'':'background:'+grad(a.id))+';position:relative">'
+    + '<div id="prevInner" style="filter:blur(14px);pointer-events:none;transition:.4s;width:100%;display:flex;align-items:center;justify-content:center">'+inner+'</div>'
+    + '<div id="lockOv" style="position:absolute;inset:0;display:flex;flex-direction:column;'
+    +   'align-items:center;justify-content:center;background:rgba(10,13,19,.55);backdrop-filter:blur(2px);text-align:center;padding:20px">'
+    +   '<div style="font-size:34px">🔒</div>'
+    +   '<div style="font-weight:600;margin-top:8px">열람하려면 조회 기록이 필요합니다</div>'
+    +   '<div class="hint" style="margin:4px 0 0">아래 <b>조회 기록 남기기</b>를 누르면 체인에 기록 후 원본이 열립니다</div>'
+    + '</div></div>';
+
+  $('mBody').innerHTML =
+    prev
+
+    +'<div class="kv"><div class="k">설명</div><div class="v">'+(esc(a.desc)||'-')+'</div></div>'
+    +'<div class="kv"><div class="k">IPFS CID</div><div class="v mono">'+a.cid+'</div></div>'
+    +'<div class="kv"><div class="k">게이트웨이</div><div class="v mono" style="color:var(--accent)">ipfs.mustree.kr/ipfs/'+a.cid.slice(0,18)+'…</div></div>'
+    +'<div class="kv"><div class="k">파일 크기</div><div class="v">'+fmtSize(a.size)+'</div></div>'
+    +'<div class="kv"><div class="k">발행자</div><div class="v mono">'+a.minter+'</div></div>'
+    +'<div class="kv"><div class="k">보유자</div><div class="v mono">'+a.owner+'</div></div>'
+    +'<div class="kv"><div class="k">발행 블록</div><div class="v mono">'+a.blk.toLocaleString()+'</div></div>'
+    +'<div class="kv"><div class="k">TX 해시</div><div class="v mono">'+a.tx+'</div></div>'
+    +'<div class="kv"><div class="k">발행 시각</div><div class="v">'+fmtTime(a.at)+'</div></div>'
+    +'<div class="kv"><div class="k">조회수</div><div class="v" id="dv">'+a.views+'</div></div>'
+
+    +'<div style="display:flex;gap:10px;margin-top:20px">'
+    +'<button style="flex:1" id="btnOpen" disabled>🔒 원본 열기 (조회 기록 후)</button>'
+    +'<button class="pri" style="flex:1" id="btnLog">조회 기록 남기기</button></div>';
+
+  $('modal').classList.add('on');
+
+  let unlocked = false;
+
+  function doOpen(){
+    if(!a.data){ toast('시연용 샘플입니다. 직접 업로드한 파일은 원본이 열립니다'); return; }
+    const w = window.open();
+    if(a.mime.startsWith('image'))
+      w.document.write('<img src="'+a.data+'" style="max-width:100%">');
+    else if(a.mime.startsWith('video'))
+      w.document.write('<video src="'+a.data+'" controls autoplay style="max-width:100%"></video>');
+    else if(a.mime.startsWith('audio'))
+      w.document.write('<audio src="'+a.data+'" controls autoplay></audio>');
+    else {
+      const link=document.createElement('a');
+      link.href=a.data; link.download=a.fname||a.title; link.click();
+      w.close(); return;
+    }
+    w.document.title = a.title;
+  }
+
+  $('btnOpen').onclick = ()=>{
+    if(!unlocked){ toast('먼저 조회 기록을 남겨주세요','err'); return; }
+    doOpen();
+  };
+
+  $('btnLog').onclick = async ()=>{
+    if(!connected){ toast('먼저 지갑을 연결하세요','err'); return; }
+    const b=$('btnLog'); b.disabled=true; b.textContent='서명 대기 중...';
+    await sleep(600);
+    b.textContent='블록 확정 대기...';
+    await sleep(1100);
+    block += 1;
+    a.views++;
+    logs.unshift({t:'view', id:a.id, who:account, blk:block, ts:Date.now()});
+    $('dv').textContent = a.views;
+    b.textContent='기록 완료 ✓';
+    toast('조회 이력이 체인에 기록되었습니다 · 열람이 해제됩니다','ok');
+
+    // 잠금 해제
+    unlocked = true;
+    const ov = $('lockOv'), inner = $('prevInner');
+    if(ov) ov.style.display='none';
+    if(inner) inner.style.filter='none', inner.style.pointerEvents='auto';
+    const bo = $('btnOpen');
+    bo.disabled = false;
+    bo.textContent = 'IPFS 원본 열기 ↗';
+
+    renderGallery();
+  };
+}
+$('mClose').onclick=()=>$('modal').classList.remove('on');
+$('modal').onclick=e=>{if(e.target.id==='modal')$('modal').classList.remove('on')};
+
+/* ============ 대시보드 ============ */
+function renderDash(){
+  const views = assets.reduce((s,a)=>s+a.views,0);
+  const holders = new Set(assets.map(a=>a.owner)).size;
+
+  $('sTotal').textContent = assets.length;
+  $('sViews').textContent = views;
+  $('sHolders').textContent = holders;
+  $('sBlock').textContent = block.toLocaleString();
+  $('dTotal').textContent = '최근 7일 +' + logs.filter(l=>l.t==='mint'&&Date.now()-l.ts<6048e5).length;
+  $('dViews').textContent = '최근 7일 +' + logs.filter(l=>l.t==='view'&&Date.now()-l.ts<6048e5).length;
+
+  // 7일 차트
+  const days = [], labels = [];
+  for(let i=6;i>=0;i--){
+    const s = Date.now()-(i+1)*864e5, e = Date.now()-i*864e5;
+    days.push(logs.filter(l=>l.ts>=s&&l.ts<e).length);
+    labels.push(new Date(e).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}));
+  }
+  const max = Math.max(...days,1);
+  $('chart').innerHTML = days.map(v=>
+    '<div class="b" style="height:'+(v/max*100)+'%" data-v="'+v+'건"></div>').join('');
+  $('xaxis').innerHTML = labels.map(l=>'<span>'+l+'</span>').join('');
+
+  // 상위
+  const top = assets.slice().sort((a,b)=>b.views-a.views).slice(0,8);
+  $('topBody').innerHTML = top.map(a=>
+    '<tr><td>#'+a.id+'</td><td>'+esc(a.title)+'</td>'
+    +'<td class="mono" style="color:var(--dim)">'+a.cid.slice(0,16)+'…</td>'
+    +'<td style="text-align:right;font-weight:600">'+a.views+'</td></tr>').join('');
+
+  // 로그
+  $('logBody').innerHTML = logs.slice(0,40).map(r=>{
+    const a = assets.find(x=>x.id===r.id);
+    return '<tr><td><span class="badge '+r.t+'">'+(r.t==='mint'?'발행':'조회')+'</span></td>'
+      +'<td>#'+r.id+'</td><td class="mono" style="color:var(--dim)">'+short(r.who)+'</td>'
+      +'<td class="mono">'+r.blk.toLocaleString()+'</td>'
+      +'<td style="color:var(--dim)">'+fmtTime(r.ts)+'</td></tr>';
+  }).join('');
+}
+
+renderGallery();
+</script>
+</body>
+</html>
